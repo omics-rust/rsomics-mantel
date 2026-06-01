@@ -1,0 +1,31 @@
+[package]
+name = "rsomics-mantel"
+version = "0.1.0"
+description = "Mantel test — permutation correlation between two distance matrices (Pearson/Spearman), scikit-bio compatible"
+edition = "2024"
+rust-version = "1.91"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/omics-rust/rsomics-mantel"
+authors = ["Zane Leong <efd@live.com>"]
+
+[[bin]]
+name = "rsomics-mantel"
+path = "src/main.rs"
+
+[lib]
+name = "rsomics_mantel"
+path = "src/lib.rs"
+doctest = false
+
+[dependencies]
+rsomics-common = { version = "0.6" }
+rsomics-help = { version = "0.3" }
+clap = { version = "4", features = ["derive"] }
+rayon = "1"
+
+[dev-dependencies]
+criterion = { version = "0.7", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "bench"
+harness = false
