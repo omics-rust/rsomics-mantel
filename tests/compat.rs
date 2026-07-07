@@ -118,6 +118,42 @@ for m in ("pearson","spearman"):
     }
 }
 
+/// A malformed distance matrix must be rejected with a non-zero exit, matching
+/// scikit-bio's `DistanceMatrixError`/`PairwiseMatrixError` rather than emitting
+/// a confident wrong statistic. Covers the two structural invariants a parser is
+/// most likely to silently accept: asymmetry and a non-hollow diagonal.
+#[test]
+fn rejects_malformed_matrix() {
+    let bin = env!("CARGO_BIN_EXE_rsomics-mantel");
+    let dir = std::env::temp_dir().join("rsomics-mantel-validate");
+    std::fs::create_dir_all(&dir).unwrap();
+
+    let valid = "\ta\tb\tc\na\t0\t1\t2\nb\t1\t0\t3\nc\t2\t3\t0\n";
+    let non_symmetric = "\ta\tb\tc\na\t0\t1\t2\nb\t9\t0\t3\nc\t2\t3\t0\n";
+    let non_hollow = "\ta\tb\tc\na\t5\t1\t2\nb\t1\t0\t3\nc\t2\t3\t0\n";
+
+    let good = dir.join("good.tsv");
+    let asym = dir.join("asym.tsv");
+    let nonhollow = dir.join("nonhollow.tsv");
+    std::fs::write(&good, valid).unwrap();
+    std::fs::write(&asym, non_symmetric).unwrap();
+    std::fs::write(&nonhollow, non_hollow).unwrap();
+
+    for bad in [&asym, &nonhollow] {
+        let out = Command::new(bin)
+            .arg(bad)
+            .arg(&good)
+            .args(["-p", "0"])
+            .output()
+            .unwrap();
+        assert!(
+            !out.status.success(),
+            "expected non-zero exit for malformed matrix {}",
+            bad.display()
+        );
+    }
+}
+
 /// The permutation p-value is a Monte-Carlo estimate: with a strong true
 /// correlation it must land near skbio's small p-value (both use 999 perms).
 #[test]

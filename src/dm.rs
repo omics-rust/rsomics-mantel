@@ -79,7 +79,46 @@ impl DistanceMatrix {
             )));
         }
 
-        Ok(DistanceMatrix { ids, data, n })
+        let dm = DistanceMatrix { ids, data, n };
+        dm.validate(source)?;
+        Ok(dm)
+    }
+
+    /// Enforce scikit-bio's `DistanceMatrix` invariants: unique ids, a hollow
+    /// diagonal, and exact symmetry with no NaNs. Negative distances are
+    /// permitted, matching skbio. Checked in skbio's order so the first failing
+    /// invariant produces the same class of error a skbio caller would see.
+    fn validate(&self, source: &str) -> Result<()> {
+        let n = self.n;
+
+        let mut seen = std::collections::HashSet::with_capacity(n);
+        for id in &self.ids {
+            if !seen.insert(id.as_str()) {
+                return Err(RsomicsError::InvalidInput(format!(
+                    "{source}: IDs must be unique. Found the following duplicate IDs: '{id}'"
+                )));
+            }
+        }
+
+        for i in 0..n {
+            if self.data[i * n + i] != 0.0 {
+                return Err(RsomicsError::InvalidInput(format!(
+                    "{source}: Data must be hollow (i.e., the diagonal can only contain zeros)."
+                )));
+            }
+        }
+
+        for i in 0..n {
+            for j in (i + 1)..n {
+                if self.data[i * n + j] != self.data[j * n + i] {
+                    return Err(RsomicsError::InvalidInput(format!(
+                        "{source}: Data must be symmetric and cannot contain NaNs."
+                    )));
+                }
+            }
+        }
+
+        Ok(())
     }
 
     /// Reorder rows and columns so the ids match `target`. skbio reorders the

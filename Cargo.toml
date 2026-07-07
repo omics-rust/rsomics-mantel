@@ -1,6 +1,6 @@
 [package]
 name = "rsomics-mantel"
-version = "0.1.0"
+version = "0.1.1"
 description = "Mantel test — permutation correlation between two distance matrices (Pearson/Spearman), scikit-bio compatible"
 edition = "2024"
 rust-version = "1.91"
