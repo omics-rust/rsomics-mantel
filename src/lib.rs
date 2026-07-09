@@ -4,10 +4,9 @@ use rayon::prelude::*;
 use rsomics_common::{Result, RsomicsError};
 use serde::Serialize;
 
-pub mod dm;
 mod rng;
 
-pub use dm::DistanceMatrix;
+pub use rsomics_distance::DistanceMatrix;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -88,13 +87,10 @@ pub fn mantel(
     seed: u64,
 ) -> MantelResult {
     let (x_flat, y_flat) = match method {
-        Method::Pearson => (
-            dm::DistanceMatrix::condensed(x_data, n),
-            dm::DistanceMatrix::condensed(y_data, n),
-        ),
+        Method::Pearson => (condensed(x_data, n), condensed(y_data, n)),
         Method::Spearman => (
-            rankdata(&dm::DistanceMatrix::condensed(x_data, n)),
-            rankdata(&dm::DistanceMatrix::condensed(y_data, n)),
+            rankdata(&condensed(x_data, n)),
+            rankdata(&condensed(y_data, n)),
         ),
     };
 
@@ -221,6 +217,20 @@ fn rankdata(v: &[f64]) -> Vec<f64> {
     ranks
 }
 
+/// Upper-triangle (i<j) entries of a raw `n × n` square in row-major order —
+/// `mantel()` reorders `y` onto `x`'s ids into a plain `Vec<f64>` before this
+/// point, so there's no `DistanceMatrix` (and its ids) left to call the
+/// canonical `condensed()` method on.
+fn condensed(data: &[f64], n: usize) -> Vec<f64> {
+    let mut v = Vec::with_capacity(n * (n - 1) / 2);
+    for i in 0..n {
+        for j in (i + 1)..n {
+            v.push(data[i * n + j]);
+        }
+    }
+    v
+}
+
 fn square_from_condensed(cond: &[f64], n: usize) -> Vec<f64> {
     let mut out = vec![0.0f64; n * n];
     let mut k = 0;
@@ -298,15 +308,15 @@ mod tests {
     #[test]
     fn condensed_upper_triangle() {
         let (x, n) = square(&[&[0.0, 1.0, 2.0], &[1.0, 0.0, 3.0], &[2.0, 3.0, 0.0]]);
-        assert_eq!(DistanceMatrix::condensed(&x, n), vec![1.0, 2.0, 3.0]);
+        assert_eq!(condensed(&x, n), vec![1.0, 2.0, 3.0]);
     }
 
     #[test]
     fn identity_permutation_reproduces_observed_stat() {
         let (x, n) = square(&[&[0.0, 1.0, 2.0], &[1.0, 0.0, 3.0], &[2.0, 3.0, 0.0]]);
         let (y, _) = square(&[&[0.0, 2.0, 7.0], &[2.0, 0.0, 6.0], &[7.0, 6.0, 0.0]]);
-        let xf = DistanceMatrix::condensed(&x, n);
-        let yf = DistanceMatrix::condensed(&y, n);
+        let xf = condensed(&x, n);
+        let yf = condensed(&y, n);
         let xmean = mean(&xf);
         let normx = norm_centered(&xf, xmean).unwrap();
         let ymn = normalize(&yf).unwrap();

@@ -51,10 +51,11 @@ impl Cli {
 
         let x = read_matrix(open(&self.dm1)?, &self.dm1.display().to_string())?;
         let y = read_matrix(open(&self.dm2)?, &self.dm2.display().to_string())?;
-        if x.n != y.n {
+        if x.n() != y.n() {
             return Err(RsomicsError::InvalidInput(format!(
                 "matrices differ in size: {} vs {}",
-                x.n, y.n
+                x.n(),
+                y.n()
             )));
         }
         let y_data = y.reorder_like(&x.ids, &self.dm2.display().to_string())?;
@@ -62,7 +63,7 @@ impl Cli {
         let res = mantel(
             &x.data,
             &y_data,
-            x.n,
+            x.n(),
             method,
             self.permutations,
             alternative,

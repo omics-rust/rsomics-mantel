@@ -11,7 +11,8 @@ fn fixture() -> (Vec<f64>, Vec<f64>, usize) {
     let x = read_matrix(BufReader::new(std::fs::File::open(&xp).unwrap()), &xp).unwrap();
     let y = read_matrix(BufReader::new(std::fs::File::open(&yp).unwrap()), &yp).unwrap();
     let yd = y.reorder_like(&x.ids, &yp).unwrap();
-    (x.data, yd, x.n)
+    let n = x.n();
+    (x.data, yd, n)
 }
 
 fn bench(c: &mut Criterion) {

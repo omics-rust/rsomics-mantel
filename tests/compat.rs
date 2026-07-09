@@ -9,7 +9,8 @@ fn load(name: &str) -> (Vec<f64>, Vec<String>, usize) {
     let path = format!("{GOLDEN}/{name}");
     let f = std::fs::File::open(&path).unwrap();
     let dm = read_matrix(BufReader::new(f), &path).unwrap();
-    (dm.data, dm.ids, dm.n)
+    let n = dm.n();
+    (dm.data, dm.ids, n)
 }
 
 fn stat(method: Method) -> f64 {
