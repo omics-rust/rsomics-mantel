@@ -2,13 +2,15 @@ use std::io::{BufRead, Write};
 
 use rayon::prelude::*;
 use rsomics_common::{Result, RsomicsError};
+use serde::Serialize;
 
 pub mod dm;
 mod rng;
 
 pub use dm::DistanceMatrix;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Method {
     Pearson,
     Spearman,
@@ -32,7 +34,8 @@ impl Method {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Alternative {
     TwoSided,
     Greater,
@@ -59,6 +62,7 @@ impl Alternative {
     }
 }
 
+#[derive(Serialize)]
 pub struct MantelResult {
     pub r: f64,
     pub p_value: f64,

@@ -3,10 +3,10 @@ use std::io::{BufReader, BufWriter, Write};
 use std::path::PathBuf;
 
 use clap::Parser;
-use rsomics_common::{CommonFlags, Result, RsomicsError, Tool, ToolMeta};
+use rsomics_common::{CommonFlags, Result, RsomicsError, ToolMeta};
 use rsomics_help::{Example, FlagSpec, HelpSpec, Origin, Section};
 
-use rsomics_mantel::{Alternative, Method, mantel, read_matrix, write_result};
+use rsomics_mantel::{Alternative, MantelResult, Method, mantel, read_matrix, write_result};
 
 pub const META: ToolMeta = ToolMeta {
     name: env!("CARGO_PKG_NAME"),
@@ -38,15 +38,12 @@ pub struct Cli {
     pub common: CommonFlags,
 }
 
-impl Tool for Cli {
-    fn meta() -> ToolMeta {
-        META
-    }
-    fn common(&self) -> &CommonFlags {
-        &self.common
-    }
-
-    fn execute(self) -> Result<()> {
+impl Cli {
+    /// Run the Mantel test and, unless `--json` is set, write the result
+    /// table to the chosen output. Under `--json` the framework serialises
+    /// the returned struct into the result envelope, so nothing is written
+    /// to stdout here.
+    pub fn report(self) -> Result<MantelResult> {
         self.common.install_rayon_pool()?;
         let method = Method::parse(&self.method)?;
         let alternative = Alternative::parse(&self.alternative)?;
@@ -72,15 +69,17 @@ impl Tool for Cli {
             seed,
         );
 
-        let mut out: Box<dyn Write> = if self.output == "-" {
-            Box::new(BufWriter::new(std::io::stdout().lock()))
-        } else {
-            Box::new(BufWriter::new(
-                File::create(&self.output).map_err(RsomicsError::Io)?,
-            ))
-        };
-        write_result(&mut out, &res)?;
-        out.flush().map_err(RsomicsError::Io)?;
+        if !self.common.json {
+            let mut out: Box<dyn Write> = if self.output == "-" {
+                Box::new(BufWriter::new(std::io::stdout().lock()))
+            } else {
+                Box::new(BufWriter::new(
+                    File::create(&self.output).map_err(RsomicsError::Io)?,
+                ))
+            };
+            write_result(&mut out, &res)?;
+            out.flush().map_err(RsomicsError::Io)?;
+        }
 
         if !self.common.quiet {
             eprintln!(
@@ -91,7 +90,7 @@ impl Tool for Cli {
                 res.n
             );
         }
-        Ok(())
+        Ok(res)
     }
 }
 
